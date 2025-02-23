@@ -1,0 +1,28 @@
+version: '1'
+setup:
+  image: icr.io/continuous-delivery/pipeline/pipeline-base-ubi:3.53
+  script: |
+    #!/usr/bin/env bash
+    if [[ "$(get_env pipeline_namespace)" == *"pr"* ]]; then
+      echo "Skipping twistlock scan for PR pipeline"
+    fi
+
+containerize:
+  dind: true
+  image: icr.io/continuous-delivery/pipeline/pipeline-base-ubi:3.53
+  script: |
+    #!/usr/bin/env bash
+    IBM_PASS_KEY=$(get_env icr_password_test "")
+    if docker login icr.io -u iamapikey -p $IBM_PASS_KEY; then
+      echo "Login successful!"
+    else
+      echo "Docker Login Failed"
+      exit 1
+    fi
+
+compliance-checks:
+  image: icr.io/continuous-delivery/pipeline/pipeline-base-ubi:3.53
+  dind: true
+  abort_on_failure: true
+  image_pull_policy: IfNotPresent
+  runAfter: test
